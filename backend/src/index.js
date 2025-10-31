@@ -5,12 +5,12 @@ const cors = require('cors');
 const morgan = require('morgan');
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/user');
-const taskRoutes = require('./routes/task');
-const budgetRoutes = require('./routes/budget');
-const guestRoutes = require('./routes/guest');
-const timelineRoutes = require('./routes/timeline');
+const authRoutes = require('./routes/auth.js');
+const userRoutes = require('./routes/user.js');
+const taskRoutes = require('./routes/task.js');
+const budgetRoutes = require('./routes/budget.js');
+const guestRoutes = require('./routes/guest.js');
+const timelineRoutes = require('./routes/timeline.js');
 
 const app = express();
 
