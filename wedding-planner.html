@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Big Day | Planner</title>
+    <style>
+        /* --- CSS Variables & Theme --- */
+        :root {
+            --primary: #BE185D; /* Rose Red */
+            --primary-light: #FCE7F3;
+            --accent: #D97706; /* Gold */
+            --text-main: #374151;
+            --text-light: #6B7280;
+            --bg: #FFF1F2; /* Very light pink bg */
+            --card-bg: #FFFFFF;
+            --border: #F3E8FF;
+            --radius: 16px;
+            --shadow: 0 4px 15px rgba(190, 24, 93, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Georgia', 'Times New Roman', serif; }
+        
+        body { background-color: var(--bg); color: var(--text-main); padding-bottom: 90px; -webkit-font-smoothing: antialiased; }
+        
+        /* Sans-serif for UI elements for readability */
+        button, input, select, .stat-label, .tab-btn, .badge { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+        /* --- Layout --- */
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        
+        .header { text-align: center; margin-bottom: 24px; position: relative; }
+        .header h1 { font-size: 2rem; color: var(--primary); margin-bottom: 4px; font-style: italic; }
+        .header p { color: var(--text-light); font-size: 0.9rem; letter-spacing: 1px; }
+        .settings-btn { position: absolute; top: 0; right: 0; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-light); }
+
+        /* --- Cards --- */
+        .card { background: var(--card-bg); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; border: 1px solid white; }
+        
+        /* --- Dashboard --- */
+        .countdown-box { text-align: center; background: var(--primary); color: white; padding: 24px; border-radius: var(--radius); margin-bottom: 20px; }
+        .countdown-number { font-size: 2.5rem; font-weight: 700; line-height: 1; font-family: sans-serif; }
+        .countdown-label { font-size: 0.9rem; opacity: 0.9; margin-top: 4px; font-family: sans-serif; text-transform: uppercase; letter-spacing: 1px; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stat-item { text-align: center; padding: 12px; background: var(--primary-light); border-radius: 12px; }
+        .stat-val { font-size: 1.25rem; font-weight: 700; color: var(--primary); font-family: sans-serif; }
+        .stat-lbl { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; }
+
+        /* --- Navigation --- */
+        .nav-dock {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: white; padding: 8px; border-radius: 30px;
+            display: flex; gap: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            z-index: 90; width: 90%; max-width: 400px;
+        }
+        .nav-btn {
+            flex: 1; border: none; background: none; padding: 12px 0;
+            border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+            color: var(--text-light); cursor: pointer; transition: 0.2s;
+        }
+        .nav-btn.active { background: var(--primary); color: white; }
+
+        /* --- Lists (Guests/Tasks) --- */
+        .list-group { list-style: none; }
+        .list-item { 
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 16px 0; border-bottom: 1px solid var(--border);
+        }
+        .list-item:last-child { border-bottom: none; }
+        
+        .item-left { display: flex; align-items: center; gap: 12px; }
+        .avatar { 
+            width: 40px; height: 40px; border-radius: 50%; 
+            background: var(--primary-light); color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1rem; font-family: sans-serif;
+        }
+        .item-details h4 { font-size: 1rem; margin-bottom: 2px; }
+        .item-details p { font-size: 0.8rem; color: var(--text-light); }
+        
+        .badge {
+            padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        }
+        .badge-success { background: #D1FAE5; color: #065F46; } /* Accepted */
+        .badge-warn { background: #FEF3C7; color: #92400E; } /* Pending */
+        .badge-danger { background: #FEE2E2; color: #991B1B; } /* Declined */
+
+        /* --- Budget --- */
+        .budget-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-family: sans-serif; }
+        .progress-bg { height: 8px; background: #E5E7EB; border-radius: 4px; overflow: hidden; margin-top: 8px; margin-bottom: 20px; }
+        .progress-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+
+        /* --- Tasks (Checkbox) --- */
+        .checkbox-wrapper {
+            width: 24px; height: 24px; border: 2px solid var(--primary); border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .checkbox-wrapper.checked { background: var(--primary); }
+        .checkbox-wrapper.checked::after { content: '✔'; color: white; font-size: 14px; }
+        .task-done { text-decoration: line-through; opacity: 0.6; }
+
+        /* --- Floating Action Button --- */
+        .fab {
+            position: fixed; bottom: 90px; right: 20px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: var(--accent); color: white;
+            border: none; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
+            font-size: 28px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 80; transition: transform 0.2s;
+        }
+        .fab:hover { transform: scale(1.05); }
+
+        /* --- Modal --- */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); z-index: 200; backdrop-filter: blur(2px);
+            align-items: center; justify-content: center; padding: 20px; overflow-y: auto;
+        }
+        .modal.open { display: flex; }
+        .modal-content { background: white; width: 100%; max-width: 400px; padding: 24px; border-radius: var(--radius); animation: slideUp 0.3s; max-height: 90vh; overflow-y: auto; }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.85rem; color: var(--text-light); margin-bottom: 6px; font-family: sans-serif; }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; }
+        input:focus { border-color: var(--primary); }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-group-vertical { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; text-align: center; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: transparent; border: 1px solid #ddd; color: var(--text-main); }
+        .btn-success { background: #10B981; color: white; }
+
+        .hidden-section { display: none; }
+        .hidden-section.active { display: block; animation: fadeIn 0.3s; }
+        
+        h4.section-title { margin-top: 20px; margin-bottom: 10px; font-size: 0.9rem; text-transform: uppercase; color: var(--text-light); border-bottom: 1px solid #eee; padding-bottom: 5px; }
+
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="header">
+        <h1 id="coupleNameDisplay">Us & Forever</h1>
+        <p id="weddingDateDisplay">Set your date</p>
+        <button class="settings-btn" onclick="app.openSettings()">&#9881;</button>
+    </header>
+
+    <main>
+        <section id="view-dashboard" class="hidden-section active">
+            <div class="countdown-box">
+                <div class="countdown-number" id="daysLeft">0</div>
+                <div class="countdown-label">Days To Go</div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-val" id="totalGuests">0</div>
+                    <div class="stat-lbl">Confirmed Guests</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val" id="tasksPending">0</div>
+                    <div class="stat-lbl">Tasks Left</div>
+                </div>
+                <div class="stat-item" style="grid-column: span 2;">
+                    <div class="stat-val" id="budgetSpent">$0</div>
+                    <div class="stat-lbl" id="budgetTotalLabel">Spent of $0 Budget</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-guests" class="hidden-section">
+            <div class="card">
+                <h3 style="margin-bottom: 15px;">Guest List</h3>
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <select id="guestFilter" onchange="app.renderGuests()" style="padding:8px;">
+                        <option value="all">All Guests</option>
+                        <option value="pending">Pending RSVP</option>
+                        <option value="accepted">Accepted</option>
+                    </select>
+                </div>
+                <ul class="list-group" id="guestList"></ul>
+            </div>
+        </section>
+
+        <section id="view-budget" class="hidden-section">
+            <div class="card">
+                <h3>Budget Tracker</h3>
+                <div style="margin-top:20px;" id="budgetList"></div>
+            </div>
+        </section>
+
+        <section id="view-tasks" class="hidden-section">
+            <div class="card">
+                <h3>To-Do Checklist</h3>
+                <ul class="list-group" id="taskList"></ul>
+            </div>
+        </section>
+    </main>
+
+    <button class="fab" id="mainFab" onclick="app.handleFab()">+</button>
+
+    <nav class="nav-dock">
+        <button class="nav-btn active" onclick="app.setTab('dashboard')">Home</button>
+        <button class="nav-btn" onclick="app.setTab('guests')">Guests</button>
+        <button class="nav-btn" onclick="app.setTab('budget')">Budget</button>
+        <button class="nav-btn" onclick="app.setTab('tasks')">Tasks</button>
+    </nav>
+</div>
+
+<div class="modal" id="inputModal">
+    <div class="modal-content">
+        <h3 id="modalTitle" style="margin-bottom:20px;">Add Item</h3>
+        <form id="modalForm" onsubmit="app.handleFormSubmit(event)">
+            <div id="modalBody"></div>
+            <div class="btn-group" id="modalActions">
+                <button type="button" class="btn btn-outline" onclick="app.closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const app = {
+    data: {
+        settings: {
+            name1: 'Alex',
+            name2: 'Sam',
+            date: '',
+            totalBudget: 20000
+        },
+        guests: [], // {id, name, side, rsvp, count}
+        budgetItems: [], // {id, category, estimated, actual}
+        tasks: [] // {id, title, done}
+    },
+    state: {
+        currentTab: 'dashboard',
+        editingId: null
+    },
+
+    init() {
+        const stored = localStorage.getItem('weddingPlannerData');
+        if (stored) this.data = JSON.parse(stored);
+        
+        // Seed some defaults if empty
+        if (this.data.tasks.length === 0) {
+            this.data.tasks = [
+                { id: '1', title: 'Book Venue', done: false },
+                { id: '2', title: 'Send Invitations', done: false }
+            ];
+        }
+
+        this.render();
+        setInterval(() => this.updateCountdown(), 60000); // Update minute
+    },
+
+    save() {
+        localStorage.setItem('weddingPlannerData', JSON.stringify(this.data));
+        this.render();
+    },
+
+    // --- RENDERING ---
+    render() {
+        this.renderHeader();
+        this.updateCountdown();
+        this.renderStats();
+        
+        if(this.state.currentTab === 'guests') this.renderGuests();
+        if(this.state.currentTab === 'budget') this.renderBudget();
+        if(this.state.currentTab === 'tasks') this.renderTasks();
+
+        // Toggle FAB visibility
+        const fab = document.getElementById('mainFab');
+        fab.style.display = this.state.currentTab === 'dashboard' ? 'none' : 'flex';
+    },
+
+    renderHeader() {
+        document.getElementById('coupleNameDisplay').textContent = 
+            `${this.data.settings.name1} & ${this.data.settings.name2}`;
+        
+        const date = this.data.settings.date;
+        document.getElementById('weddingDateDisplay').textContent = 
+            date ? new Date(date).toDateString() : "Tap gear icon to set date";
+    },
+
+    updateCountdown() {
+        const dateStr = this.data.settings.date;
+        const el = document.getElementById('daysLeft');
+        if (!dateStr) { el.textContent = "--"; return; }
+
+        const target = new Date(dateStr).getTime();
+        const now = new Date().getTime();
+        const diff = target - now;
+        
+        if (diff < 0) {
+             el.textContent = "0"; 
+             document.querySelector('.countdown-label').textContent = "Happily Married!";
+        } else {
+            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+            el.textContent = days;
+        }
+    },
+
+    renderStats() {
+        // Guests
+        const confirmed = this.data.guests.reduce((acc, g) => 
+            g.rsvp === 'accepted' ? acc + (parseInt(g.count)||1) : acc, 0);
+        document.getElementById('totalGuests').textContent = confirmed;
+
+        // Tasks
+        const pending = this.data.tasks.filter(t => !t.done).length;
+        document.getElementById('tasksPending').textContent = pending;
+
+        // Budget
+        const spent = this.data.budgetItems.reduce((acc, b) => acc + (parseFloat(b.actual)||0), 0);
+        document.getElementById('budgetSpent').textContent = "$" + spent.toLocaleString();
+        document.getElementById('budgetTotalLabel').textContent = `Spent of $${this.data.settings.totalBudget.toLocaleString()} Budget`;
+    },
+
+    renderGuests() {
+        const list = document.getElementById('guestList');
+        const filter = document.getElementById('guestFilter').value;
+        list.innerHTML = '';
+
+        const filtered = this.data.guests.filter(g => {
+            if (filter === 'all') return true;
+            return g.rsvp === filter;
+        });
+
+        if(filtered.length === 0) { list.innerHTML = '<li style="text-align:center; padding:20px; color:#aaa;">No guests found.</li>'; return; }
+
+        filtered.forEach(g => {
+            const li = document.createElement('li');
+            li.className = 'list-item';
+            
+            let badgeClass = 'badge-warn';
+            if (g.rsvp === 'accepted') badgeClass = 'badge-success';
+            if (g.rsvp === 'declined') badgeClass = 'badge-danger';
+
+            li.innerHTML = `
+                <div class="item-left" onclick="app.editGuest('${g.id}')">
+                    <div class="avatar">${g.name.charAt(0)}</div>
+                    <div class="item-details">
+                        <h4>${g.name} (+${(g.count - 1) > 0 ? g.count - 1 : 0})</h4>
+                        <span class="badge ${badgeClass}">${g.rsvp}</span>
+                    </div>
+                </div>
+                <button class="btn-outline" style="border:none; color:#999;" onclick="app.deleteGuest('${g.id}')">&times;</button>
+            `;
+            list.appendChild(li);
+        });
+    },
+
+    renderTasks() {
+        const list = document.getElementById('taskList');
+        list.innerHTML = '';
+        
+        this.data.tasks.forEach(t => {
+            const li = document.createElement('li');
+            li.className = 'list-item';
+            li.innerHTML = `
+                <div class="item-left">
+                    <div class="checkbox-wrapper ${t.done ? 'checked' : ''}" onclick="app.toggleTask('${t.id}')"></div>
+                    <div class="item-details ${t.done ? 'task-done' : ''}">
+                        <h4>${t.title}</h4>
+                    </div>
+                </div>
+                <button class="btn-outline" style="border:none; color:#999;" onclick="app.deleteTask('${t.id}')">&times;</button>
+            `;
+            list.appendChild(li);
+        });
+    },
+
+    renderBudget() {
+        const list = document.getElementById('budgetList');
+        list.innerHTML = '';
+
+        this.data.budgetItems.forEach(b => {
+            const est = parseFloat(b.estimated);
+            const act = parseFloat(b.actual);
+            const pct = est > 0 ? Math.min((act / est) * 100, 100) : 0;
+            
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <div onclick="app.editBudget('${b.id}')" style="cursor:pointer">
+                    <div class="budget-row">
+                        <strong>${b.category}</strong>
+                        <span>$${act} / $${est}</span>
+                    </div>
+                    <div class="progress-bg">
+                        <div class="progress-fill" style="width: ${pct}%; background: ${act > est ? '#EF4444' : 'var(--accent)'}"></div>
+                    </div>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    },
+
+    // --- ACTIONS ---
+    setTab(tab) {
+        this.state.currentTab = tab;
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll(`button[onclick="app.setTab('${tab}')"]`).forEach(b => b.classList.add('active'));
+        
+        document.querySelectorAll('.hidden-section').forEach(s => s.classList.remove('active'));
+        document.getElementById(`view-${tab}`).classList.add('active');
+        this.render();
+    },
+
+    handleFab() {
+        this.state.editingId = null;
+        if (this.state.currentTab === 'guests') this.openGuestModal();
+        if (this.state.currentTab === 'budget') this.openBudgetModal();
+        if (this.state.currentTab === 'tasks') this.openTaskModal();
+    },
+
+    // --- MODALS ---
+    openSettings() {
+        this.state.editingId = 'settings';
+        document.getElementById('modalTitle').textContent = "Wedding Settings";
+        document.getElementById('modalActions').style.display = 'flex';
+        
+        // Settings form including the new Export options
+        document.getElementById('modalBody').innerHTML = `
+            <h4 class="section-title">Details</h4>
+            <div class="form-group"><label>Partner 1 Name</label><input type="text" id="inpName1" value="${this.data.settings.name1}"></div>
+            <div class="form-group"><label>Partner 2 Name</label><input type="text" id="inpName2" value="${this.data.settings.name2}"></div>
+            <div class="form-group"><label>Wedding Date</label><input type="date" id="inpDate" value="${this.data.settings.date}"></div>
+            <div class="form-group"><label>Total Budget Limit</label><input type="number" id="inpBudget" value="${this.data.settings.totalBudget}"></div>
+            
+            <h4 class="section-title">Export to Excel / CSV</h4>
+            <div class="btn-group-vertical">
+                <button type="button" class="btn btn-outline" onclick="app.exportReport('guests')">📄 Download Guest List</button>
+                <button type="button" class="btn btn-outline" onclick="app.exportReport('budget')">💰 Download Budget</button>
+                <button type="button" class="btn btn-outline" onclick="app.exportReport('tasks')">✅ Download Checklist</button>
+            </div>
+        `;
+        document.getElementById('inputModal').classList.add('open');
+    },
+
+    openGuestModal(guest = null) {
+        document.getElementById('modalTitle').textContent = guest ? "Edit Guest" : "Add Guest";
+        document.getElementById('modalActions').style.display = 'flex';
+        document.getElementById('modalBody').innerHTML = `
+            <div class="form-group"><label>Name</label><input type="text" id="gName" required value="${guest?.name || ''}"></div>
+            <div class="form-group"><label>Party Size</label><input type="number" id="gCount" min="1" value="${guest?.count || 1}"></div>
+            <div class="form-group"><label>RSVP Status</label>
+                <select id="gRsvp">
+                    <option value="pending" ${guest?.rsvp === 'pending' ? 'selected' : ''}>Pending</option>
+                    <option value="accepted" ${guest?.rsvp === 'accepted' ? 'selected' : ''}>Accepted</option>
+                    <option value="declined" ${guest?.rsvp === 'declined' ? 'selected' : ''}>Declined</option>
+                </select>
+            </div>
+        `;
+        document.getElementById('inputModal').classList.add('open');
+    },
+
+    openBudgetModal(item = null) {
+        document.getElementById('modalTitle').textContent = item ? "Edit Cost" : "Add Cost";
+        document.getElementById('modalActions').style.display = 'flex';
+        document.getElementById('modalBody').innerHTML = `
+            <div class="form-group"><label>Category/Item</label><input type="text" id="bCat" placeholder="e.g. Flowers" required value="${item?.category || ''}"></div>
+            <div class="form-group"><label>Estimated Cost</label><input type="number" id="bEst" value="${item?.estimated || ''}"></div>
+            <div class="form-group"><label>Actual Spent</label><input type="number" id="bAct" value="${item?.actual || 0}"></div>
+        `;
+        document.getElementById('inputModal').classList.add('open');
+    },
+
+    openTaskModal() {
+        document.getElementById('modalTitle').textContent = "New Task";
+        document.getElementById('modalActions').style.display = 'flex';
+        document.getElementById('modalBody').innerHTML = `
+            <div class="form-group"><label>Title</label><input type="text" id="tTitle" required placeholder="e.g. Call Photographer"></div>
+        `;
+        document.getElementById('inputModal').classList.add('open');
+    },
+
+    closeModal() {
+        document.getElementById('inputModal').classList.remove('open');
+    },
+
+    // --- LOGIC HANDLERS ---
+    handleFormSubmit(e) {
+        e.preventDefault();
+        const tab = this.state.currentTab;
+        const editId = this.state.editingId;
+
+        if (editId === 'settings') {
+            this.data.settings.name1 = document.getElementById('inpName1').value;
+            this.data.settings.name2 = document.getElementById('inpName2').value;
+            this.data.settings.date = document.getElementById('inpDate').value;
+            this.data.settings.totalBudget = parseFloat(document.getElementById('inpBudget').value);
+        } else if (tab === 'guests') {
+            const guest = {
+                id: editId || Date.now().toString(),
+                name: document.getElementById('gName').value,
+                count: parseInt(document.getElementById('gCount').value),
+                rsvp: document.getElementById('gRsvp').value
+            };
+            if (editId) {
+                const idx = this.data.guests.findIndex(g => g.id === editId);
+                this.data.guests[idx] = guest;
+            } else {
+                this.data.guests.push(guest);
+            }
+        } else if (tab === 'budget') {
+            const item = {
+                id: editId || Date.now().toString(),
+                category: document.getElementById('bCat').value,
+                estimated: document.getElementById('bEst').value,
+                actual: document.getElementById('bAct').value
+            };
+            if (editId) {
+                const idx = this.data.budgetItems.findIndex(b => b.id === editId);
+                this.data.budgetItems[idx] = item;
+            } else {
+                this.data.budgetItems.push(item);
+            }
+        } else if (tab === 'tasks') {
+            const task = {
+                id: Date.now().toString(),
+                title: document.getElementById('tTitle').value,
+                done: false
+            };
+            this.data.tasks.push(task);
+        }
+
+        this.save();
+        this.closeModal();
+    },
+
+    // --- EXPORT LOGIC (EXCEL/CSV) ---
+    exportReport(type) {
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF is the BOM for Excel to read UTF-8 correctly
+        let filename = `wedding_${type}.csv`;
+        let rows = [];
+
+        if (type === 'guests') {
+            rows.push(["Name", "Total Party Size", "RSVP Status"]);
+            this.data.guests.forEach(g => {
+                rows.push([`"${g.name}"`, g.count, g.rsvp]);
+            });
+        } else if (type === 'budget') {
+            rows.push(["Category", "Estimated Cost", "Actual Cost", "Difference"]);
+            this.data.budgetItems.forEach(b => {
+                const diff = (parseFloat(b.estimated) - parseFloat(b.actual)).toFixed(2);
+                rows.push([`"${b.category}"`, b.estimated, b.actual, diff]);
+            });
+        } else if (type === 'tasks') {
+            rows.push(["Task Description", "Status"]);
+            this.data.tasks.forEach(t => {
+                rows.push([`"${t.title}"`, t.done ? "Completed" : "Pending"]);
+            });
+        }
+
+        // Join rows
+        csvContent += rows.map(e => e.join(",")).join("\n");
+
+        // Trigger Download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+
+    // --- CRUD Helpers ---
+    editGuest(id) {
+        this.state.editingId = id;
+        const g = this.data.guests.find(x => x.id === id);
+        this.openGuestModal(g);
+    },
+    deleteGuest(id) {
+        if(confirm('Remove this guest?')) {
+            this.data.guests = this.data.guests.filter(g => g.id !== id);
+            this.save();
+        }
+    },
+    editBudget(id) {
+        this.state.editingId = id;
+        const b = this.data.budgetItems.find(x => x.id === id);
+        this.openBudgetModal(b);
+    },
+    toggleTask(id) {
+        const t = this.data.tasks.find(x => x.id === id);
+        t.done = !t.done;
+        this.save();
+    },
+    deleteTask(id) {
+        this.data.tasks = this.data.tasks.filter(t => t.id !== id);
+        this.save();
+    }
+};
+
+app.init();
+</script>
+</body>
+</html>
